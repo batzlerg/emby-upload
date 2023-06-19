@@ -1,7 +1,9 @@
 <script lang="ts">
+	import FilePreview from '../components/FilePreview.svelte';
 	import UploadIcon from '../components/UploadIcon.svelte';
 
 	let files: File[] = [];
+	let imagePreviews: string[] = [];
 	let isDragging = false;
 
 	function handleDrop(event: DragEvent) {
@@ -33,6 +35,24 @@
 		const fileList = input.files;
 		if (fileList) {
 			files = Array.from(fileList);
+			// Generate image previews
+			const filePromises = Array.from(fileList).map((file) => {
+				return new Promise<string>((resolve, reject) => {
+					const reader = new FileReader();
+					reader.onload = () => {
+						resolve(reader.result as string);
+					};
+					reader.onerror = reject;
+					reader.readAsDataURL(file);
+				});
+			});
+			Promise.all(filePromises)
+				.then((previews) => {
+					imagePreviews = previews;
+				})
+				.catch((error) => {
+					console.error('Failed to generate image previews:', error);
+				});
 		}
 	}
 
@@ -40,6 +60,11 @@
 		if (event.key === 'Enter' || event.key === ' ') {
 			handleBrowseClick();
 		}
+	}
+
+	function handleRemoveFile(index: number) {
+		files = files.filter((_, i) => i !== index);
+		imagePreviews = imagePreviews.filter((_, i) => i !== index);
 	}
 </script>
 
@@ -56,11 +81,11 @@
 	{#if !isDragging}
 		{#if !(files.length > 0)}
 			<UploadIcon />
+			<p>Drag and drop files here</p>
 		{/if}
-		<p>Drag and drop files here</p>
 	{/if}
-	{#each files as file (file.name)}
-		<div class="file-name">{file}</div>
+	{#each files as file, i}
+		<FilePreview {file} preview={imagePreviews[i]} on:remove={() => handleRemoveFile(i)} />
 	{/each}
 </div>
 
