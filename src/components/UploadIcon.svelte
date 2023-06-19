@@ -8,6 +8,7 @@
 		position: relative;
 		width: 16rem;
 		height: 16rem;
+		text-align: center;
 	}
 
 	.icon-document {

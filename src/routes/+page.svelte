@@ -1,6 +1,7 @@
 <script lang="ts">
 	import FilePreview from '../components/FilePreview.svelte';
 	import UploadIcon from '../components/UploadIcon.svelte';
+	import generateImagePreview from '../utils/generateImagePreview';
 
 	let files: File[] = [];
 	let imagePreviews: string[] = [];
@@ -10,7 +11,8 @@
 		event.preventDefault();
 		const fileList = event.dataTransfer?.files;
 		if (fileList) {
-			files = Array.from(fileList);
+			files = [...files, ...Array.from(fileList)];
+			generateImagePreviews();
 		}
 		isDragging = false;
 	}
@@ -34,26 +36,20 @@
 		const input = event.target as HTMLInputElement;
 		const fileList = input.files;
 		if (fileList) {
-			files = Array.from(fileList);
-			// Generate image previews
-			const filePromises = Array.from(fileList).map((file) => {
-				return new Promise<string>((resolve, reject) => {
-					const reader = new FileReader();
-					reader.onload = () => {
-						resolve(reader.result as string);
-					};
-					reader.onerror = reject;
-					reader.readAsDataURL(file);
-				});
-			});
-			Promise.all(filePromises)
-				.then((previews) => {
-					imagePreviews = previews;
-				})
-				.catch((error) => {
-					console.error('Failed to generate image previews:', error);
-				});
+			files = [...files, ...Array.from(fileList)];
+			generateImagePreviews();
 		}
+	}
+
+	function generateImagePreviews() {
+		const filePromises = files.map(generateImagePreview);
+		Promise.all(filePromises)
+			.then((previews) => {
+				imagePreviews = previews;
+			})
+			.catch((error) => {
+				console.error('Failed to generate image previews:', error);
+			});
 	}
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -68,43 +64,59 @@
 	}
 </script>
 
-<div
-	class="drop-area {isDragging ? 'drag-over' : ''}"
-	id="drop-area"
-	on:drop={handleDrop}
-	on:dragenter={handleDragEnter}
-	on:dragleave={handleDragLeave}
-	on:click={handleBrowseClick}
-	on:keydown={handleKeyDown}
-	tabindex="-1"
->
-	{#if !isDragging}
-		{#if !(files.length > 0)}
+<div class="container">
+	<div
+		class="drop-area {isDragging ? 'drag-over' : ''}"
+		id="drop-area"
+		on:drop={handleDrop}
+		on:dragenter={handleDragEnter}
+		on:dragleave={handleDragLeave}
+		on:click={handleBrowseClick}
+		on:keydown={handleKeyDown}
+		tabindex="-1"
+	>
+		{#if !isDragging}
 			<UploadIcon />
-			<p>Drag and drop files here</p>
+			<p>Drag and drop or select files</p>
 		{/if}
-	{/if}
-	{#each files as file, i}
-		<FilePreview {file} preview={imagePreviews[i]} on:remove={() => handleRemoveFile(i)} />
-	{/each}
+	</div>
+
+	<div class="image-grid">
+		{#each files as file, i}
+			<FilePreview {file} preview={imagePreviews[i]} on:remove={() => handleRemoveFile(i)} />
+		{/each}
+	</div>
 </div>
 
 <input type="file" id="file-input" on:change={handleFileInput} multiple />
 
 <style>
+	.container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		width: 100%;
+	}
+
 	.drop-area {
 		border: 2px dashed #ccc;
 		padding: 20px;
 		text-align: center;
 		cursor: pointer;
-	}
-
-	.file-name {
-		margin-top: 10px;
+		width: 100%;
 	}
 
 	.drop-area.drag-over {
 		border-color: blue;
+	}
+
+	.image-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+		grid-gap: 20px;
+		padding: 20px;
+		margin: 20px;
+		width: 100%;
 	}
 
 	/* Hide the default file input style */
