@@ -66,19 +66,19 @@
 
 <div class="container">
 	<div
-		class="drop-area {isDragging ? 'drag-over' : ''}"
+		class="drop-area"
+		class:drag-over={isDragging}
 		id="drop-area"
 		on:drop={handleDrop}
 		on:dragenter={handleDragEnter}
 		on:dragleave={handleDragLeave}
+		on:dragover={(event) => event.preventDefault()}
 		on:click={handleBrowseClick}
 		on:keydown={handleKeyDown}
 		tabindex="-1"
 	>
-		{#if !isDragging}
-			<UploadIcon />
-			<p>Drag and drop or select files</p>
-		{/if}
+		<UploadIcon />
+		<p>Drag and drop or select files</p>
 	</div>
 
 	<div class="image-grid">
